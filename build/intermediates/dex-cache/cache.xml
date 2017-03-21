@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="true"
+        jar="D:\Android\android\TodoSqliteAppDao\app\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.2"
+        sha1="c78ecf139efc74a9f163bc77329d17ec9c036661">
+        <dex dex="D:\Android\android\TodoSqliteAppDao\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run-bootstrap_d0cf43a4c5f8f0a9db464610d78366b34181fc38\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\Android\android\TodoSqliteAppDao\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.2"
+        sha1="c82741bc129dd5f99f11a4ab8666ae24262053b6">
+        <dex dex="D:\Android\android\TodoSqliteAppDao\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run_b1bcea6c75d1f6c100ae4dd9ed4d4674e1ea35c6\classes.dex" />
+    </item>
+
+</items>

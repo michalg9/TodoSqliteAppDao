@@ -12,12 +12,19 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
+
+import app.todo.todosqliteapp.dao.Database;
+import app.todo.todosqliteapp.dao.Task;
 import app.todo.todosqliteapp.db.TaskContract;
 import app.todo.todosqliteapp.db.TaskHelper;
 
@@ -25,27 +32,22 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
-    TaskHelper mHelper;
-    SQLiteDatabase db;
-    Cursor currentCursor = null;
-    SimpleCursorAdapter cursorAdapter = null;
+    public static Database mDb;
     ListView taskListView = null;
+    ArrayAdapter<String> taskListAdapter = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mHelper = new TaskHelper(this);
+        mDb = new Database(this);
+        mDb.open();
+
+        taskListAdapter = new ArrayAdapter<String>(this, R.layout.item_todo);
         taskListView = (ListView) findViewById(R.id.todo_list);
 
-        cursorAdapter =
-                new SimpleCursorAdapter(this,
-                        R.layout.item_todo, currentCursor,
-                        new String[] {TaskContract.TaskEntry._ID,
-                                TaskContract.TaskEntry.COL_TASK_TITLE},
-                        new int[] {R.id.task_id, R.id.task_title}, 0);
+        taskListView.setAdapter(taskListAdapter);
 
-        taskListView.setAdapter(cursorAdapter);
         updateUI();
     }
 
@@ -76,10 +78,10 @@ public class MainActivity extends AppCompatActivity {
                             public void onClick(DialogInterface dialog, int which) {
                                 String taskText = String.valueOf(taskEditText.getText());
 
-                                ContentValues values = new ContentValues();
-                                values.put(TaskContract.TaskEntry.COL_TASK_TITLE, taskText);
+                                Task task = new Task();
+                                task.title = taskText;
 
-                                new InsertTask().execute(values);
+                                new InsertTask().execute(task);
 
                                 Log.d(TAG, "Zadanie dodane: " + taskText);
 
@@ -105,56 +107,47 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, "usuwamy task " + taskToRemove);
 
-        SQLiteDatabase db = mHelper.getWritableDatabase();
-        db.delete(TaskContract.TaskEntry.TABLE,
-                TaskContract.TaskEntry.COL_TASK_TITLE + " = ?",
-                new String[] {taskToRemove});
+        mDb.mTaskDao.deleteTaskByTitle(taskToRemove);
 
-        db.close();
         updateUI();
 
         //
     }
 
-    abstract private class BaseTask<T> extends AsyncTask<T, Void, Cursor> {
+    abstract private class BaseTask<T> extends AsyncTask<T, Void, List<Task>> {
 
         @Override
-        public void onPostExecute(Cursor result) {
-            currentCursor = result;
-            cursorAdapter.changeCursor(currentCursor);
-            cursorAdapter.notifyDataSetChanged();
+        public void onPostExecute(List<Task> result) {
+            List<String> titleList = new ArrayList<>();
+            for (Task task :
+                 result) {
+                titleList.add(task.title);
+            }
+            taskListAdapter.clear();
+            taskListAdapter.addAll(titleList);
+            taskListAdapter.notifyDataSetChanged();
+
         }
 
-        protected Cursor doQuery() {
-            Cursor newCursor = mHelper.getReadableDatabase()
-                    .query(TaskContract.TaskEntry.TABLE,
-                            new String[] {
-                                    TaskContract.TaskEntry._ID,
-                                    TaskContract.TaskEntry.COL_TASK_TITLE},
-                            null, null, null, null, null);
-
-            return newCursor;
+        protected List<Task> doQuery() {
+            return mDb.mTaskDao.fetchAllTasks();
         }
     }
 
     private class LoadTasks extends BaseTask<Void> {
         @Override
-        protected Cursor doInBackground(Void... params) {
+        protected List<Task> doInBackground(Void... params) {
             return(doQuery());
         }
     }
 
-    private class InsertTask extends BaseTask<ContentValues> {
+    private class InsertTask extends BaseTask<Task> {
         @Override
-        protected Cursor doInBackground(ContentValues... values) {
+        protected List<Task> doInBackground(Task... values) {
 
-            // SQL INSERT
-            mHelper.getWritableDatabase().insertWithOnConflict(
-                    TaskContract.TaskEntry.TABLE,
-                    null,
-                    values[0],
-                    SQLiteDatabase.CONFLICT_REPLACE
-            );
+
+
+            mDb.mTaskDao.addTask(values[0]);
 
             return(doQuery());
         }
@@ -162,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
 
     private class DeleteTask extends BaseTask<String> {
         @Override
-        protected Cursor doInBackground(String... values) {
+        protected List<Task> doInBackground(String... values) {
 
             // SQL DELETE
 
